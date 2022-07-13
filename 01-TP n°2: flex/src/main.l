@@ -5,20 +5,21 @@
 #include <stdlib.h>
 #include "misFunciones.h"
 
-
+int numLineas = 0;
 
 %}/* ---------------------------------------- ALIAS ------------------------------------------------ */
 
+
 /* Constantes Enteras */
-DECIMAL                 [1-9][0-9]*;
-OCTAL                   0[0-7]*;
-HEXADECIMAL             0[xX][0-9a-fA-F]+;
+CONST_DECIMAL           [1-9][0-9]*;
+CONST_OCTAL             0[0-7]*;
+CONST_HEXADECIMAL       0[xX][0-9a-fA-F]+;
 
 /* Constante Reales  */
-REAL                    ([0-9]*\.[0-9]+([Ee](+|-)?[0-9]*)?)|([0-9].([Ee](+|-)?[0-9]*)?);
+CONST_REAL              ([0-9]*\.[0-9]+([Ee](+|-)?[0-9]*)?)|([0-9].([Ee](+|-)?[0-9]*)?);
 
 /* Constante Caracter   */
-CONSTANTE_CARACTER      \x2c.\x2c;   /*    (\x2c) => '   */ 
+CONST_CARACTER          \x2c[:print:]\x2c;   /*    (\x2c) => '   */ 
 
 /* Identificadores */
 IDENTIFICADOR           [a-zA-Z_][a-zA-Z0-9_]*;
@@ -36,7 +37,7 @@ OTRAS_PAL_RES           auto|case|const|default|enum|extern|long|register|short|
 PALABRA_RESERVADA       {TIPO_DATO}|{ESTRUCTURA_DE_CONTROL}|{OTRAS_PAL_RES};
 
 /* Literales cadena */
-LITERAL_CADENA          \x22(\\.|[^\\x22])*\x22;     /*    (\x22) => "   */
+LITERAL_CADENA          \x22[:print:]*\x22;     /*    (\x22) => "   */
 
 /* Comentarios */
 COMENTARIO_UNA_LINEA    \x2f\x2f.*;     /*    (\x2f) => /   */
@@ -46,24 +47,26 @@ COMENTARIO_MULTILINEA   \x2f\x2a(.|[ \t]|\n)*\x2a\x2f;    /*    { (\x2f) => '/' 
 %%/* ---------------------------------------- REGLAS ------------------------------------------------ */
 
 
-{IDENTIFICADOR} { /* buscarInsertarIdentificador(yytext); */ }  
+{IDENTIFICADOR}             { buscarInsertarIdentificador(yytext); }  
 
-{LITERAL_CADENA} { /* insertarCadena(yytext,yyleng); */ }
+{LITERAL_CADENA}            { insertarLiteralCadena(yytext, yyleng); }
 
-{PALABRA_RESERVADA} { /* buscarInsertarReservada(yytext); */ }
+{PALABRA_RESERVADA}         { insertarPalReservada(yytext); }
 
-{OCTAL} { /* insertarConstOctal(yytext); */ } 
-{HEXADECIMAL} { /* insertarConstHexadecimal(yytext); */ }
-{DECIMAL} { /* insertarConstDecimal(yytext); */ } 
-{REAL} { /* insertarConstReal(yytext); */ }
-{CONSTANTE_CARACTER} { /* insertarConstCaracter(yytext); */ }
+{CONST_OCTAL}               { insertarConstOctal(yytext); } 
+{CONST_HEXADECIMAL}         { insertarConstHexadecimal(yytext); }
+{CONST_DECIMAL}             { insertarConstDecimal(atoi(yytext)); } 
+{CONST_REAL}                { insertarConstReal(atof(yytext)); }
+{CONST_CARACTER}            { insertarConstCaracter(atoi(yytext)); }
 
-{PUNTUACION_OPERADOR} { /* buscarInsertarPuntuacionOperador(yytext); */ }
+{PUNTUACION_OPERADOR}       { buscarInsertarPuntuacionOperador(yytext); }
 
-{COMENTARIO_UNA_LINEA}  { /* insertarComentario(yytext, 1); */ }
-{COMENTARIO_MULTILINEA} { /* insertarComentario(yytext, 0); */ }
+{COMENTARIO_UNA_LINEA}      { insertarComentario(yytext, 1); }
+{COMENTARIO_MULTILINEA}     { insertarComentario(yytext, 0); }
 
-. { /* insertarNoReconocido(yytext); */ }
+\n                          numLineas++; /* Suma las lineas leidas hasta al momento */
+
+.                           {insertarNoReconocido(yytext, numLineas);}
 
 
 %%/* ---------------------------------------- CODIGO DE USUARIO C ------------------------------------------------ */
@@ -77,6 +80,4 @@ int main(){
     return 0;
 }
 
-
-
-    
+/* Falta implementar las funciones y escribir las listas en el archivo de salida */
